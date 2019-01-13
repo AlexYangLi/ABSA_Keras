@@ -32,6 +32,10 @@ Tang et al. "Effective LSTMs for Target-Dependent Sentiment Classification"
  ```
  python3 preprocessing.pt
  ```
+### Training
+```
+python3 train.py
+```
 
 ### Data Analysis
 
