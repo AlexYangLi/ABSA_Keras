@@ -1,6 +1,6 @@
 ## Aspect-based Sentiment Analysis
 
-Keras implementation (tensorflow backend) of aspect based sentiment analysi
+Keras implementation (tensorflow backend) of aspect based sentiment analysis
 
 ### Models
 
@@ -137,3 +137,4 @@ Tang et al. "Effective LSTMs for Target-Dependent Sentiment Classification"
 | aspect_text_char_max_len       |   21   |
 | < aspect_text_char_len = 0.99  |   16   |
 
+### Performance
