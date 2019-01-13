@@ -102,3 +102,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+data/
+.idea/
+ckpt/
+raw_data/bdci18_car
+fsauor2018

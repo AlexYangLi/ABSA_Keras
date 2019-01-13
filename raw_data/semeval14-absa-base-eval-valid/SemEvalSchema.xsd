@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xs:schema version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:element name="aspectCategories" type="semEval14AspectCategories"/>
+
+  <xs:element name="aspectCategory" type="semEval14AspectCategory"/>
+
+  <xs:element name="aspectTerm" type="semEval14AspectTerm"/>
+
+  <xs:element name="aspectTerms" type="semEval14AspectTerms"/>
+
+  <xs:element name="sentence" type="semEval14Sentence"/>
+
+  <xs:element name="sentences" type="semEval14Sentences"/>
+
+  <xs:complexType name="semEval14Sentences">
+    <xs:sequence>
+      <xs:element ref="sentence" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="semEval14Sentence">
+    <xs:sequence>
+      <xs:element name="text" type="xs:string" minOccurs="1" maxOccurs="1"/>
+      <xs:element ref="aspectTerms" minOccurs="0"/>
+      <xs:element ref="aspectCategories" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="semEval14AspectTerms">
+    <xs:sequence>
+      <xs:element ref="aspectTerm" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="semEval14AspectTerm">
+    <xs:sequence/>
+    <xs:attribute name="term" type="xs:string" use="required"/>
+	<xs:attribute name="polarity" type="xs:string" use="required"/>
+    <xs:attribute name="from" type="xs:int" use="required"/>
+    <xs:attribute name="to" type="xs:int" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="semEval14AspectCategories">
+    <xs:sequence>
+      <xs:element ref="aspectCategory" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="semEval14AspectCategory">
+    <xs:sequence/>
+    <xs:attribute name="category" type="xs:string" use="required"/>
+	<xs:attribute name="polarity" type="xs:string" use="required"/>
+  </xs:complexType>
+</xs:schema>
+
