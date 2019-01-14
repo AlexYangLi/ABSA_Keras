@@ -23,15 +23,10 @@ Wang et al. "Attention-based LSTM for Aspect-level Sentiment Classification"
 Tang et al. "Effective LSTMs for Target-Dependent Sentiment Classification"
 
 ### Preprocessing
- 1. Download pre-trained word embeddings here: [glove.42B.300d.zip](https://nlp.stanford.edu/data/wordvecs/glove.42B.300d.zip), unzip and put it in `raw_data` directory
- 2. Process raw data:
- ```
- python3 process_raw.py
- ```
- 3. Prepare training, valid, testing data
- ```
- python3 preprocessing.pt
- ```
+```
+sh preprocess.sh
+```
+
 ### Training
 ```
 python3 train.py
