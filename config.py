@@ -61,7 +61,7 @@ class Config(object):
 
         # model saving configuration
         self.checkpoint_dir = './ckpt'
-        self.checkpoint_monitor = 'val_acc'
+        self.checkpoint_monitor = 'val_f1'
         self.checkpoint_save_best_only = True
         self.checkpoint_save_weights_only = True
         self.checkpoint_save_weights_mode = 'max'
@@ -97,7 +97,7 @@ class Config(object):
         elif self.model_name == 'ian':
             self.use_text_input, self.use_split_text_input = True, False
             self.use_aspect_input, self.use_aspect_text_input = False, True
-            self.use_loc_input, self.use_offset_input = False, True
+            self.use_loc_input, self.use_offset_input = False, False
         elif self.model_name == 'cabasc':
             self.use_text_input, self.use_split_text_input = False, True
             self.use_aspect_input, self.use_aspect_text_input = True, False

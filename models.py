@@ -43,8 +43,13 @@ class SentiModelMetrics(Callback):
         self.val_f1s = []
 
     def on_epoch_end(self, epoch, logs={}):
-        valid_results = self.model.predict(self.validation_data[:-1])
-        _val_acc, _val_f1 = get_score_senti(self.validation_data[-1], valid_results)
+        if len(self.validation_data[:-3]) == 1:
+            x_valid = self.validation_data[0]
+        else:
+            x_valid = self.validation_data[:-3]
+        y_valid = self.validation_data[-3]
+        valid_results = self.model.predict(x_valid)
+        _val_acc, _val_f1 = get_score_senti(y_valid, valid_results)
         logs['val_acc'] = _val_acc
         logs['val_f1'] = _val_f1
         self.val_accs.append(_val_acc)
@@ -65,19 +70,22 @@ class SentimentModel(object):
         self.asp_max_len = self.config.asp_max_len[self.config.data_name][self.level]
 
         if self.config.use_text_input or self.config.use_split_text_input:
-            self.text_embeddings = np.load('./data/%s_%s.npy' % (self.level, self.config.word_embed_type))
+            self.text_embeddings = np.load('./data/%s/%s_%s.npy' % (self.config.data_folder, self.level,
+                                                                    self.config.word_embed_type))
         else:
             self.text_embeddings = None
         if self.config.use_aspect_input:
-            self.aspect_embeddings = np.load('./data/aspect_%s_%s.npy' % (self.level, self.config.aspect_embed_type))
+            self.aspect_embeddings = np.load('./data/%s/aspect_%s_%s.npy' % (self.config.data_folder, self.level,
+                                                                             self.config.aspect_embed_type))
             if config.aspect_embed_type == 'random':
                 self.n_aspect = self.aspect_embeddings.shape[0]
                 self.aspect_embeddings = None
         else:
             self.aspect_embeddings = None
         if self.config.use_aspect_text_input:
-            self.aspect_text_embeddings = np.load('./data/aspect_text_%s_%s.npy' % (self.level,
-                                                                                    self.config.word_embed_type))
+            self.aspect_text_embeddings = np.load('./data/%s/aspect_text_%s_%s.npy' % (self.config.data_folder,
+                                                                                       self.level,
+                                                                                       self.config.word_embed_type))
         else:
             self.aspect_text_embeddings = None
 
@@ -96,7 +104,7 @@ class SentimentModel(object):
             monitor=self.config.checkpoint_monitor,
             save_best_only=self.config.checkpoint_save_best_only,
             save_weights_only=self.config.checkpoint_save_weights_only,
-            mode=self.config.checkpoint_mode,
+            mode=self.config.checkpoint_save_weights_mode,
             verbose=self.config.checkpoint_verbose
         ))
 
@@ -108,7 +116,8 @@ class SentimentModel(object):
 
     def load(self):
         print('loading model checkpoint {} ...\n'.format('%s.hdf5') % self.config.exp_name)
-        self.model.load_weights(os.path.join(self.config.checkpoint_dir, '%s.hdf5' % self.config.exp_name))
+        self.model.load_weights(os.path.join(self.config.checkpoint_dir, '%s/%s.hdf5' % (self.config.data_folder,
+                                                                                         self.config.exp_name)))
         print('Model loaded')
 
     def build_base_network(self):
@@ -204,7 +213,11 @@ class SentimentModel(object):
         y_valid = self.prepare_label(valid_label)
 
         print('start training...')
-        self.model.fit(x=x_train, y=y_train, batch_size=self.config.batch_size, epochs=self.config.num_epochs,
+        for i in range(len(x_train)):
+            print(x_train[i].shape)
+            print(x_train[i][:2])
+            print(x_valid[i].shape)
+        self.model.fit(x=x_train, y=y_train, batch_size=self.config.batch_size, epochs=self.config.n_epochs,
                        validation_data=(x_valid, y_valid), callbacks=self.callbacks)
         print('training end...')
 
@@ -274,14 +287,14 @@ class SentimentModel(object):
 
         hidden_concat = concatenate([hidden_l, hidden_r], axis=-1)
 
-        return Model([input_l, input_r], hidden_concat)
+        return Model([input_l, input_r, input_aspect], hidden_concat)
 
     # lstm with aspect embedding
     def ae_lstm(self):
         input_text = Input(shape=(self.max_len,))
         input_aspect = Input(shape=(1,),)
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.embedding_dim,
+        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
                                    weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
                                    mask_zero=True)
         text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
@@ -338,7 +351,7 @@ class SentimentModel(object):
         input_text = Input(shape=(self.max_len,))
         input_aspect = Input(shape=(1,),)
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.embedding_dim,
+        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
                                    weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
                                    mask_zero=True)
         text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
@@ -365,7 +378,7 @@ class SentimentModel(object):
         input_text = Input(shape=(self.max_len,))
         input_aspect = Input(shape=(1,), )
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.embedding_dim,
+        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
                                    weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
                                    mask_zero=True)
         text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
@@ -400,9 +413,9 @@ class SentimentModel(object):
         input_aspect = Input(shape=(1,))
         inputs = [input_text, input_aspect]
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.embedding_dim,
+        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
                                    weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)(input_text)
+                                   mask_zero=True)
         text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
         if self.config.use_loc_input:   # location attention
             input_loc = Input(shape=(self.max_len,))
@@ -421,7 +434,7 @@ class SentimentModel(object):
 
         # the parameter of attention and linear layers are shared in different hops
         attention_layer = Attention(use_W=False, use_bias=True)
-        linear_layer = Dense(self.config.embedding_dim)
+        linear_layer = Dense(self.config.word_embed_dim)
         # output from each computation layer, representing text in different level of abstraction
         computation_layers_out = [aspect_embed]
 
@@ -448,9 +461,9 @@ class SentimentModel(object):
         input_aspect = Input(shape=(1,))
         inputs = [input_text, input_aspect]
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.embedding_dim,
+        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
                                    weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)(input_text)
+                                   mask_zero=True)
         text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
 
         if self.config.aspect_embed_type == 'random':
@@ -487,20 +500,20 @@ class SentimentModel(object):
         input_text = Input(shape=(self.max_len,))
         input_aspect_text = Input(shape=(self.asp_max_len,), )
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.embedding_dim,
+        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
                                    weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)(input_text)
+                                   mask_zero=True)
         text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
 
         asp_text_embedding = Embedding(input_dim=self.aspect_text_embeddings.shape[0],
-                                       output_dim=self.config.embedding_dim,
+                                       output_dim=self.config.word_embed_dim,
                                        weights=[self.aspect_text_embeddings],
                                        trainable=self.config.word_embed_trainable,
                                        mask_zero=True)
         asp_text_embed = asp_text_embedding(input_aspect_text)
 
-        hidden_text = LSTM(self.config.lstm_units)(text_embed)
-        hidden_asp_text = LSTM(self.config.lstm_units)(asp_text_embed)
+        hidden_text = LSTM(self.config.lstm_units, return_sequences=True)(text_embed)
+        hidden_asp_text = LSTM(self.config.lstm_units, return_sequences=True)(asp_text_embed)
 
         attend_concat = InteractiveAttention()([hidden_text, hidden_asp_text])
 

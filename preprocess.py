@@ -304,7 +304,7 @@ def pre_process(file_folder, word_cut_func, is_en):
     test_aspect_input = test_data['aspect'].apply(lambda x: [aspect_vocab[x]]).values.tolist()
     pickle_dump(train_aspect_input, os.path.join(file_folder, 'train_aspect_input.pkl'))
     pickle_dump(valid_aspect_input, os.path.join(file_folder, 'valid_aspect_input.pkl'))
-    pickle_dump(test_aspect_input, os.path.join(file_folder, 'valid_aspect_input.pkl'))
+    pickle_dump(test_aspect_input, os.path.join(file_folder, 'test_aspect_input.pkl'))
     print('finished preparing aspect input!')
 
     print('preparing aspect text input...')

@@ -69,7 +69,7 @@ class Attention(Layer):
                                      name='{}_W'.format(self.name), regularizer=self.W_regularizer,
                                      constraint=self.W_constraint)
         if self.use_bias:
-            self.b = self.add_weight(shape=(input_shape[-1],), initializer='zero', name='{}_b'.format(self.name),
+            self.b = self.add_weight(shape=(input_shape[1],), initializer='zero', name='{}_b'.format(self.name),
                                      regularizer=self.b_regularizer, constraint=self.b_constraint)
 
         self.u = self.add_weight(shape=(input_shape[-1],), initializer=self.init, name='{}_u'.format(self.name),
@@ -288,8 +288,18 @@ class InteractiveAttention(Layer):
 
     def call(self, inputs, mask=None):
         assert isinstance(inputs, list)
-        context_mask, asp_text_mask = mask
+        if mask is not None:
+            context_mask, asp_text_mask = mask
+        else:
+            context_mask = None
+            asp_text_mask = None
+
         context, asp_text = inputs
+        print(K.int_shape(context_mask))
+        print(K.int_shape(asp_text_mask))
+        print(K.int_shape(context))
+        print(K.int_shape(asp_text))
+
         context_avg = K.mean(context, axis=1)
         asp_text_avg = K.mean(asp_text, axis=1)
 
