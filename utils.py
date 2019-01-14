@@ -40,4 +40,6 @@ def get_score_senti(y_true, y_pred):
     acc = accuracy_score(y_true, y_pred)
     f1 = f1_score(y_true, y_pred, average='macro')
 
+    print('acc:', acc)
+    print('macro_f1:', f1)
     return acc, f1

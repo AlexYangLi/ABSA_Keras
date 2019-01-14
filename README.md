@@ -137,3 +137,32 @@ python3 train.py
 | < aspect_text_char_len = 0.99  |   16   |
 
 ### Performance
+Note: the results with '*' mean they are not retrieved from the original papers.
+
+- Accuracy
+
+| model   | laptop(paper) |  laptop  | restaurant(paper) | restaurant | twitter(paper) | twitter |
+|---------|---------------|----------|-------------------|------------|----------------|---------|
+|td_lstm  |               |          |                   |            |    0.708       |         |
+|tc_lstm  |               |          |                   |            |    0.715       |         |
+|ae_lstm  |    0.689      |          |      0.766        |            |                |         |
+|at_lstm  |               |          |                   |            |                |         |
+|atae_lstm|    0.687      |          |      0.772        |            |                |         |
+|memnet   |    0.7237     |          |      0.8095       |            |                |         |
+|ian      |    0.721      |          |      0.786        |            |                |         |
+|ram      |    0.7449     |          |      0.8023       |            |    0.6936      |         |
+|cabasc   |    0.7507     |          |      0.8089       |            |    0.7153      |         |
+
+
+| model   | laptop(paper) |  laptop  | restaurant(paper) | restaurant | twitter(paper) | twitter |
+|---------|---------------|----------|-------------------|------------|----------------|---------|
+|td_lstm  |               |          |                   |            |    0.690       |         |
+|tc_lstm  |               |          |                   |            |    0.695       |         |
+|ae_lstm  |               |          |                   |            |                |         |
+|at_lstm  |               |          |                   |            |                |         |
+|atae_lstm|               |          |                   |            |                |         |
+|memnet   |               |          |                   |            |                |         |
+|ian      |               |          |                   |            |                |         |
+|ram      |   0.7135      |          |     0.7080        |            |    0.6730      |         |
+|cabasc   |               |          |                   |            |                |         |
+

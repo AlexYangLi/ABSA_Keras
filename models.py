@@ -213,10 +213,6 @@ class SentimentModel(object):
         y_valid = self.prepare_label(valid_label)
 
         print('start training...')
-        for i in range(len(x_train)):
-            print(x_train[i].shape)
-            print(x_train[i][:2])
-            print(x_valid[i].shape)
         self.model.fit(x=x_train, y=y_train, batch_size=self.config.batch_size, epochs=self.config.n_epochs,
                        validation_data=(x_valid, y_valid), callbacks=self.callbacks)
         print('training end...')
@@ -370,8 +366,11 @@ class SentimentModel(object):
         concat = concatenate([hidden_vecs, repeat_aspect], axis=-1)  # mask after concatenate will be same as hidden_out's mask
 
         # apply attention mechanism
-        attended_hidden = Attention()(concat)
-        return Model([input_text, input_aspect], attended_hidden)
+        attend_weight = Attention()(concat)
+        attend_weight_expand = Lambda(lambda x: K.expand_dims(x))(attend_weight)
+        attend_hidden = multiply([hidden_vecs, attend_weight_expand])
+        attend_hidden = Lambda(lambda x: K.sum(x, axis=1))(attend_hidden)
+        return Model([input_text, input_aspect], attend_hidden)
 
     # attention-based lstm with aspect embedding
     def atae_lstm(self):
@@ -403,8 +402,8 @@ class SentimentModel(object):
         attend_hidden = multiply([hidden_vecs, attend_weight_expand])
         attend_hidden = Lambda(lambda x: K.sum(x, axis=1))(attend_hidden)
 
-        final_output = Activation('tanh')(Dense(self.config.lstm_units)(attend_hidden) + Dense(self.config.lstm_units)(state_h))
-        return Model([input_text, input_aspect], final_output)
+        # final_output = Activation('tanh')(Dense(self.config.lstm_units)(attend_hidden) + Dense(self.config.lstm_units)(state_h))
+        return Model([input_text, input_aspect], attend_hidden)
 
     # deep memory network
     def memnet(self):

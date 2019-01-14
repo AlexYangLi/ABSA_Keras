@@ -60,8 +60,7 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
         model.train(train_input, train_label, valid_input, valid_label)
 
         elapsed_time = time.time() - start_time
-        print('training time:')
-        time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
+        print('training time:', time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
 
     # load the best model
     model.load()
@@ -74,39 +73,39 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
 
 if __name__ == '__main__':
     config = Config()
-    train_model('laptop/term', 'laptop', 'word', 'td_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'tc_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'ae_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'at_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'atae_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'memnet')
-    config.word_embed_trainable = False
-    train_model('laptop/term', 'laptop', 'word', 'ram')
-    config.word_embed_trainable = True
-    train_model('laptop/term', 'laptop', 'word', 'ram')
-    # train_model('laptop/term', 'laptop', 'word', 'ian')
+    # train_model('laptop/term', 'laptop', 'word', 'td_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'tc_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'ae_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'at_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'atae_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'memnet')
+    # config.word_embed_trainable = False
+    # train_model('laptop/term', 'laptop', 'word', 'ram')
+    # config.word_embed_trainable = True
+    # train_model('laptop/term', 'laptop', 'word', 'ram')
+    train_model('laptop/term', 'laptop', 'word', 'ian')
 
-    train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'ae_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'at_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'atae_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'memnet')
-    config.word_embed_trainable = False
-    train_model('restaurant/term', 'restaurant', 'word', 'ram')
-    config.word_embed_trainable = True
-    train_model('restaurant/term', 'restaurant', 'word', 'ram')
+    # train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'ae_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'at_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'atae_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'memnet')
+    # config.word_embed_trainable = False
+    # train_model('restaurant/term', 'restaurant', 'word', 'ram')
+    # config.word_embed_trainable = True
+    # train_model('restaurant/term', 'restaurant', 'word', 'ram')
     # train_model('restaurant/term', 'restaurant', 'word', 'ian')
 
-    train_model('twitter/term', 'twitter', 'word', 'td_lstm')
-    train_model('twitter/term', 'twitter', 'word', 'tc_lstm')
-    train_model('twitter/term', 'twitter', 'word', 'ae_lstm')
-    train_model('twitter/term', 'twitter', 'word', 'at_lstm')
-    train_model('twitter/term', 'twitter', 'word', 'atae_lstm')
-    train_model('twitter/term', 'twitter', 'word', 'memnet')
-    config.word_embed_trainable = False
-    train_model('twitter/term', 'twitter', 'word', 'ram')
-    config.word_embed_trainable = True
-    train_model('twitter/term', 'twitter', 'word', 'ram')
+    # train_model('twitter/term', 'twitter', 'word', 'td_lstm')
+    # train_model('twitter/term', 'twitter', 'word', 'tc_lstm')
+    # train_model('twitter/term', 'twitter', 'word', 'ae_lstm')
+    # train_model('twitter/term', 'twitter', 'word', 'at_lstm')
+    # train_model('twitter/term', 'twitter', 'word', 'atae_lstm')
+    # train_model('twitter/term', 'twitter', 'word', 'memnet')
+    # config.word_embed_trainable = False
+    # train_model('twitter/term', 'twitter', 'word', 'ram')
+    # config.word_embed_trainable = True
+    # train_model('twitter/term', 'twitter', 'word', 'ram')
     # train_model('twitter/term', 'twitter', 'word', 'ian')
 

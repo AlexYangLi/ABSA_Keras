@@ -53,15 +53,15 @@ class Config(object):
 
         # model training configuration
         self.dropout = 0.5
-        self.batch_size = 25
-        self.n_epochs = 64
+        self.batch_size = 32
+        self.n_epochs = 50
         self.n_classes = 3
         self.learning_rate = 0.001
         self.optimizer = "adam"
 
         # model saving configuration
         self.checkpoint_dir = './ckpt'
-        self.checkpoint_monitor = 'val_f1'
+        self.checkpoint_monitor = 'val_acc'
         self.checkpoint_save_best_only = True
         self.checkpoint_save_weights_only = True
         self.checkpoint_save_weights_mode = 'max'

@@ -316,7 +316,7 @@ class InteractiveAttention(Layer):
         a_t = K.exp(a_t)
         if context_mask is not None:
             a_t *= K.cast(asp_text_mask, K.floatx())
-        a_t = K.cast(K.sum(a_c, axis=1, keepdims=True) + K.epsilon(), K.floatx())
+        a_t = K.cast(K.sum(a_t, axis=1, keepdims=True) + K.epsilon(), K.floatx())
         attend_asp_text = K.sum(asp_text * K.expand_dims(a_t), axis=1)
 
         attend_concat = K.concatenate([attend_context, attend_asp_text], axis=-1)
