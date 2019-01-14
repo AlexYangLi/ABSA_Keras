@@ -118,8 +118,6 @@ class SentimentModel(object):
             base_network = self.tc_lstm()
         elif self.config.model_name == 'at_lstm':
             base_network = self.at_lstm()
-        elif self.config.model_name == 'atcu_lstm':
-            base_network = self.at_lstm_custom()
         elif self.config.model_name == 'ae_lstm':
             base_network = self.ae_lstm()
         elif self.config.model_name == 'atae_lstm':
@@ -510,7 +508,27 @@ class SentimentModel(object):
 
     # content attention based aspect based sentiment classification model
     def cabasc(self):
-        return
+        input_l = Input(shape=(self.left_max_len,))
+        input_r = Input(shape=(self.right_max_len,))
+
+        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
+                                   weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                   mask_zero=True)
+        input_l_embed = SpatialDropout1D(0.2)(word_embedding(input_l))
+        input_r_embed = SpatialDropout1D(0.2)(word_embedding(input_r))
+
+        # regarding aspect string as the first unit
+        hidden_l = GRU(self.config.lstm_units, go_backwards=True)(input_l_embed)
+        hidden_r = GRU(self.config.lstm_units)(input_r_embed)
+
+        context_attend_l = TimeDistributed(Dense(1, activation='sigmoid'))(hidden_l)
+        context_attend_l = Lambda(lambda x: K.squeeze(context_attend_l, -1))(context_attend_l)
+        context_attend_r = TimeDistributed(Dense(1, activation='sigmoid'))(hidden_r)
+        context_attend_r = TimeDistributed(Dense(1, activation='sigmoid'))(context_attend_r)
+
+
+
+
 
 
 

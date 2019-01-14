@@ -45,7 +45,7 @@ def process_xml(file_path, is_train_file, save_folder):
                     if _end < len(_text) and _text[_end] != ' ':
                         _text = _text[:_end] + ' ' + _text[_end:]
                     if _text[_start:_end] != _aspect:
-                        raise Exception('{} {}'.format(_text, _aspect))
+                        raise Exception('{}=={}=={}'.format(_text, _text[_start:_end], _aspect))
                     content_term.append(_text)
                     aspect_term.append(_aspect)
                     sentiment_term.append(_sentiment)
