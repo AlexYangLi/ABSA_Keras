@@ -137,32 +137,38 @@ python3 train.py
 | < aspect_text_char_len = 0.99  |   16   |
 
 ### Performance
-Note: the results with '*' mean they are not retrieved from the original papers.
+Note: results in the parenthese is the performance of models with word embeddings fixed (aspect embeddings fine tuned)
 
 - Accuracy
 
-| model   | laptop(paper) |  laptop  | restaurant(paper) | restaurant | twitter(paper) | twitter |
-|---------|---------------|----------|-------------------|------------|----------------|---------|
-|td_lstm  |               |          |                   |            |    0.708       |         |
-|tc_lstm  |               |          |                   |            |    0.715       |         |
-|ae_lstm  |    0.689      |          |      0.766        |            |                |         |
-|at_lstm  |               |          |                   |            |                |         |
-|atae_lstm|    0.687      |          |      0.772        |            |                |         |
-|memnet   |    0.7237     |          |      0.8095       |            |                |         |
-|ian      |    0.721      |          |      0.786        |            |                |         |
-|ram      |    0.7449     |          |      0.8023       |            |    0.6936      |         |
-|cabasc   |    0.7507     |          |      0.8089       |            |    0.7153      |         |
+| model   | laptop(paper) |  laptop         | restaurant(paper) | restaurant     | twitter(paper) | twitter          |
+|---------|---------------|-----------------|-------------------|----------------|----------------|------------------|
+|td_lstm  |               |  0.69122(0.7225)|                   |  0.7732(0.7875)|    0.708       |  0.69508(0.7182) |
+|tc_lstm  |               |  0.68652(0.6833)|                   |  0.7642(0.7687)|    0.715       |  0.70379(0.72398)|
+|ae_lstm  |    0.689      |  0.67398(0.6834)|      0.766        |  0.7598(0.7571)|                |  0.6878(0.6936)  |
+|at_lstm  |               |  0.68181(0.7179)|                   |  0.7669(0.7696)|                |  0.6575(0.70520) |
+|atae_lstm|    0.687      |  0.68025(0.6849)|      0.772        |  0.7598(0.7607)|                |  0.68061(0.69508)|
+|memnet   |    0.7237     |  0.5329(0.52978)|      0.8095       |  0.6508(0.6508)|                |  0.57803(0.5606) |
+|ram      |    0.7449     |  0.7021(0.7210) |      0.8023       |  0.7866(0.7946)|    0.6936      |  0.69653(0.71242)|
+|ian      |    0.721      |  0.6912(0.6927) |      0.786        |  0.7758(0.7892)|                |  0.6835(0.71242) |
+|cabasc   |    0.7507     |                 |      0.8089       |                |    0.7153      |                  |
 
+- Macro-F1
 
-| model   | laptop(paper) |  laptop  | restaurant(paper) | restaurant | twitter(paper) | twitter |
-|---------|---------------|----------|-------------------|------------|----------------|---------|
-|td_lstm  |               |          |                   |            |    0.690       |         |
-|tc_lstm  |               |          |                   |            |    0.695       |         |
-|ae_lstm  |               |          |                   |            |                |         |
-|at_lstm  |               |          |                   |            |                |         |
-|atae_lstm|               |          |                   |            |                |         |
-|memnet   |               |          |                   |            |                |         |
-|ian      |               |          |                   |            |                |         |
-|ram      |   0.7135      |          |     0.7080        |            |    0.6730      |         |
-|cabasc   |               |          |                   |            |                |         |
+| model   | laptop(paper) |  laptop         | restaurant(paper) | restaurant     | twitter(paper) | twitter          |
+|---------|---------------|-----------------|-------------------|----------------|----------------|------------------|
+|td_lstm  |               |  0.62223(0.6667)|                   |  0.6623(0.6836)|    0.690       |  0.6783(0.70238) |
+|tc_lstm  |               |  0.62287(0.6223)|                   |  0.6022(0.6651)|    0.695       |  0.6797(0.70639) |
+|ae_lstm  |               |  0.60334(0.6159)|                   |  0.6365(0.6300)|                |  0.6638(0.66873) |
+|at_lstm  |               |  0.61957(0.6564)|                   |  0.6630(0.6451)|                |  0.6553(0.67674) |
+|atae_lstm|               |  0.6172(0.63431)|                   |  0.6096(0.6430)|                |  0.6629(0.67799) |
+|memnet   |               |  0.40214(0.3538)|                   |  0.3339(0.3011)|                |  0.5096(0.49457) |
+|ram      |   0.7135      |  0.6474(0.6794) | 0.7080            |  0.6855(0.6915)|    0.6730      |  0.6769(0.6873)  |
+|ian      |               |  0.62409(0.6306)|                   |  0.6675(0.6800)|                |  0.65373(0.70094)|
+|cabasc   |               |                 |                   |                |                |                  |
 
+- Personal conclusion
+1. I found `AT-LSTM` is always better than `AE-LSTM` & `ATAE-LSTM`. Actually it's not just on SemEval14 & twitter data, but many other sentiment analysis data.
+2. Surprisingly, I failed to achieved similar performance as stated in the parper of `Memnet`. Or maybe there are bugs in the code?
+3. `TD-LSTM` performs unexpectedly well.
+4. Models with fixed word embeddings are generally better than those with fine-tuned word embeddings, which is consistent with the paper of `RAM`.

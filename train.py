@@ -41,10 +41,6 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
     print(config.exp_name)
     model = SentimentModel(config)
 
-    valid_input = load_input_data(data_folder, 'valid', level, config.use_text_input, config.use_split_text_input,
-                                  config.use_aspect_input, config.use_aspect_text_input, config.use_loc_input,
-                                  config.use_offset_input)
-    valid_label = load_label(data_folder, 'valid')
     test_input = load_input_data(data_folder, 'test', level, config.use_text_input, config.use_split_text_input,
                                  config.use_aspect_input, config.use_aspect_text_input, config.use_loc_input,
                                  config.use_offset_input)
@@ -57,7 +53,17 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
                                       config.use_aspect_input, config.use_aspect_text_input, config.use_loc_input,
                                       config.use_offset_input)
         train_label = load_label(data_folder, 'train')
-        model.train(train_input, train_label, valid_input, valid_label)
+        valid_input = load_input_data(data_folder, 'valid', level, config.use_text_input, config.use_split_text_input,
+                                      config.use_aspect_input, config.use_aspect_text_input, config.use_loc_input,
+                                      config.use_offset_input)
+        valid_label = load_label(data_folder, 'valid')
+
+        train_combine_valid_input = []
+        for i in range(len(train_input)):
+            train_combine_valid_input.append(train_input[i] + valid_input[i])
+        train_combine_valid_label = train_label + valid_label
+
+        model.train(train_combine_valid_input, train_combine_valid_label, test_input, test_label)
 
         elapsed_time = time.time() - start_time
         print('training time:', time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
@@ -65,47 +71,67 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
     # load the best model
     model.load()
 
-    print('score over valid data...')
-    model.score(valid_input, valid_label)
+    # print('score over valid data...')
+    # model.score(valid_input, valid_label)
     print('score over test data...')
     model.score(test_input, test_label)
 
 
 if __name__ == '__main__':
     config = Config()
-    # train_model('laptop/term', 'laptop', 'word', 'td_lstm')
-    # train_model('laptop/term', 'laptop', 'word', 'tc_lstm')
-    # train_model('laptop/term', 'laptop', 'word', 'ae_lstm')
-    # train_model('laptop/term', 'laptop', 'word', 'at_lstm')
-    # train_model('laptop/term', 'laptop', 'word', 'atae_lstm')
-    # train_model('laptop/term', 'laptop', 'word', 'memnet')
-    # config.word_embed_trainable = False
-    # train_model('laptop/term', 'laptop', 'word', 'ram')
-    # config.word_embed_trainable = True
-    # train_model('laptop/term', 'laptop', 'word', 'ram')
+    config.word_embed_trainable = False
+    train_model('laptop/term', 'laptop', 'word', 'td_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'tc_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'ae_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'at_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'atae_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'memnet')
+    train_model('laptop/term', 'laptop', 'word', 'ram')
     train_model('laptop/term', 'laptop', 'word', 'ian')
 
-    # train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
-    # train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
-    # train_model('restaurant/term', 'restaurant', 'word', 'ae_lstm')
-    # train_model('restaurant/term', 'restaurant', 'word', 'at_lstm')
-    # train_model('restaurant/term', 'restaurant', 'word', 'atae_lstm')
-    # train_model('restaurant/term', 'restaurant', 'word', 'memnet')
-    # config.word_embed_trainable = False
-    # train_model('restaurant/term', 'restaurant', 'word', 'ram')
-    # config.word_embed_trainable = True
-    # train_model('restaurant/term', 'restaurant', 'word', 'ram')
-    # train_model('restaurant/term', 'restaurant', 'word', 'ian')
+    train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'ae_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'at_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'atae_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'memnet')
+    train_model('restaurant/term', 'restaurant', 'word', 'ram')
+    train_model('restaurant/term', 'restaurant', 'word', 'ian')
 
-    # train_model('twitter/term', 'twitter', 'word', 'td_lstm')
-    # train_model('twitter/term', 'twitter', 'word', 'tc_lstm')
-    # train_model('twitter/term', 'twitter', 'word', 'ae_lstm')
-    # train_model('twitter/term', 'twitter', 'word', 'at_lstm')
-    # train_model('twitter/term', 'twitter', 'word', 'atae_lstm')
-    # train_model('twitter/term', 'twitter', 'word', 'memnet')
-    # config.word_embed_trainable = False
-    # train_model('twitter/term', 'twitter', 'word', 'ram')
-    # config.word_embed_trainable = True
-    # train_model('twitter/term', 'twitter', 'word', 'ram')
-    # train_model('twitter/term', 'twitter', 'word', 'ian')
+    train_model('twitter', 'twitter', 'word', 'td_lstm')
+    train_model('twitter', 'twitter', 'word', 'tc_lstm')
+    train_model('twitter', 'twitter', 'word', 'ae_lstm')
+    train_model('twitter', 'twitter', 'word', 'at_lstm')
+    train_model('twitter', 'twitter', 'word', 'atae_lstm')
+    train_model('twitter', 'twitter', 'word', 'memnet')
+    train_model('twitter', 'twitter', 'word', 'ram')
+    train_model('twitter', 'twitter', 'word', 'ian')
+
+    config.word_embed_trainable = True
+    train_model('laptop/term', 'laptop', 'word', 'td_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'tc_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'ae_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'at_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'atae_lstm')
+    train_model('laptop/term', 'laptop', 'word', 'memnet')
+    train_model('laptop/term', 'laptop', 'word', 'ram')
+    train_model('laptop/term', 'laptop', 'word', 'ian')
+
+    train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'ae_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'at_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'atae_lstm')
+    train_model('restaurant/term', 'restaurant', 'word', 'memnet')
+    train_model('restaurant/term', 'restaurant', 'word', 'ram')
+    train_model('restaurant/term', 'restaurant', 'word', 'ian')
+
+    train_model('twitter', 'twitter', 'word', 'td_lstm')
+    train_model('twitter', 'twitter', 'word', 'tc_lstm')
+    train_model('twitter', 'twitter', 'word', 'ae_lstm')
+    train_model('twitter', 'twitter', 'word', 'at_lstm')
+    train_model('twitter', 'twitter', 'word', 'atae_lstm')
+    train_model('twitter', 'twitter', 'word', 'memnet')
+    train_model('twitter', 'twitter', 'word', 'ram')
+    train_model('twitter', 'twitter', 'word', 'ian')
 

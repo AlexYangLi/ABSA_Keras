@@ -295,10 +295,6 @@ class InteractiveAttention(Layer):
             asp_text_mask = None
 
         context, asp_text = inputs
-        print(K.int_shape(context_mask))
-        print(K.int_shape(asp_text_mask))
-        print(K.int_shape(context))
-        print(K.int_shape(asp_text))
 
         context_avg = K.mean(context, axis=1)
         asp_text_avg = K.mean(asp_text, axis=1)
