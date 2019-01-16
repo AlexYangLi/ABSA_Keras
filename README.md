@@ -32,6 +32,12 @@ sh preprocess.sh
 python3 train.py
 ```
 
+### Environment
+- python==3.6.4
+- keras==2.2.4
+- nltk==3.2.5
+- tensorflow=1.6.0
+
 ### Data Analysis
 
 - Laptop
