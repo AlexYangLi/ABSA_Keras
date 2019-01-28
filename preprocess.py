@@ -137,14 +137,20 @@ def get_loc_info(l, start, end):
 
 
 def split_text_and_get_loc_info(data, word_vocab, char_vocab, word_cut_func):
-    word_input_l, word_input_r, word_pos_input, word_offset_input = [], [], [], []
-    char_input_l, char_input_r, char_pos_input, char_offset_input = [], [], [], []
+    word_input_l, word_input_r, word_input_r_with_pad, word_pos_input, word_offset_input = [], [], [], [], []
+    char_input_l, char_input_r, char_input_r_with_pad, char_pos_input, char_offset_input = [], [], [], [], []
+    word_mask, char_mask = [], []
     for idx, row in data.iterrows():
         text, word_list, char_list, aspect = row['content'], row['word_list'], row['char_list'], row['aspect']
         start, end = row['from'], row['to']
 
         char_input_l.append(list(map(lambda x: char_vocab.get(x, len(char_vocab)+1), char_list[:end])))
         char_input_r.append(list(map(lambda x: char_vocab.get(x, len(char_vocab)+1), char_list[start:])))
+        char_input_r_with_pad.append([char_vocab.get(char_list[i], len(char_vocab)+1) if i >= start else 0
+                                      for i in range(len(char_list))])  # replace left sequence with 0
+        _char_mask = [1] * len(char_list)
+        _char_mask[start:end] = [0.5] * (end-start)     # 1 for context, 0.5 for aspect
+        char_mask.append(_char_mask)
         _pos_input, _offset_input = get_loc_info(char_list, start, end)
         char_pos_input.append(_pos_input)
         char_offset_input.append(_offset_input)
@@ -162,10 +168,16 @@ def split_text_and_get_loc_info(data, word_vocab, char_vocab, word_cut_func):
                 raise Exception('Can not find aspect `{}` in `{}`, word list : `{}`'.format(aspect, text, word_list))
         word_input_l.append(list(map(lambda x: word_vocab.get(x, len(word_vocab)+1), word_list[:end])))
         word_input_r.append(list(map(lambda x: word_vocab.get(x, len(word_vocab)+1), word_list[start:])))
+        word_input_r_with_pad.append([word_vocab.get(word_list[i], len(word_vocab) + 1) if i >= start else 0
+                                      for i in range(len(word_list))])      # replace left sequence with 0
+        _word_mask = [1] * len(word_list)
+        _word_mask[start:end] = [0.5] * (end - start)  # 1 for context, 0.5 for aspect
+        word_mask.append(_word_mask)
         _pos_input, _offset_input = get_loc_info(word_list, start, end)
         word_pos_input.append(_pos_input)
         word_offset_input.append(_offset_input)
-    return word_input_l, word_input_r, word_pos_input, word_offset_input, char_input_l, char_input_r, char_pos_input, char_offset_input
+    return (word_input_l, word_input_r, word_input_r_with_pad, word_mask, word_pos_input, word_offset_input,
+            char_input_l, char_input_r, char_input_r_with_pad, char_mask, char_pos_input, char_offset_input)
 
 
 def pre_process(file_folder, word_cut_func, is_en):
@@ -334,39 +346,58 @@ def pre_process(file_folder, word_cut_func, is_en):
 
     if 'from' in train_data.columns:
         print('preparing left text input, right text input & position input...')
-        train_word_input_l, train_word_input_r, train_word_pos_input, train_word_offset_input, train_char_input_l, \
-            train_char_input_r, train_char_pos_input, train_char_offset_input = split_text_and_get_loc_info(
-                train_data, word_vocab, char_vocab, word_cut_func)
+        train_word_input_l, train_word_input_r, train_word_input_r_with_pad, train_word_mask, train_word_pos_input, \
+            train_word_offset_input, train_char_input_l, train_char_input_r, train_char_input_r_with_pad, \
+            train_char_mask, train_char_pos_input, train_char_offset_input = split_text_and_get_loc_info(train_data,
+                                                                                                         word_vocab,
+                                                                                                         char_vocab,
+                                                                                                         word_cut_func)
         pickle_dump(train_word_input_l, os.path.join(file_folder, 'train_word_input_l.pkl'))
         pickle_dump(train_word_input_r, os.path.join(file_folder, 'train_word_input_r.pkl'))
+        pickle_dump(train_word_input_r_with_pad, os.path.join(file_folder, 'train_word_input_r_with_pad.pkl'))
+        pickle_dump(train_word_mask, os.path.join(file_folder, 'train_word_mask.pkl'))
         pickle_dump(train_word_pos_input, os.path.join(file_folder, 'train_word_pos_input.pkl'))
         pickle_dump(train_word_offset_input, os.path.join(file_folder, 'train_word_offset_input.pkl'))
         pickle_dump(train_char_input_l, os.path.join(file_folder, 'train_char_input_l.pkl'))
         pickle_dump(train_char_input_r, os.path.join(file_folder, 'train_char_input_r.pkl'))
+        pickle_dump(train_char_input_r_with_pad, os.path.join(file_folder, 'train_char_input_r_with_pad.pkl'))
+        pickle_dump(train_char_mask, os.path.join(file_folder, 'train_char_mask.pkl'))
         pickle_dump(train_char_pos_input, os.path.join(file_folder, 'train_char_pos_input.pkl'))
         pickle_dump(train_char_offset_input, os.path.join(file_folder, 'train_char_offset_input.pkl'))
 
-        valid_word_input_l, valid_word_input_r, valid_word_pos_input, valid_word_offset_input, valid_char_input_l, \
-            valid_char_input_r, valid_char_pos_input, valid_char_offset_input = split_text_and_get_loc_info(
-                valid_data, word_vocab, char_vocab, word_cut_func)
+        valid_word_input_l, valid_word_input_r, valid_word_input_r_with_pad, valid_word_mask, valid_word_pos_input, \
+            valid_word_offset_input, valid_char_input_l, valid_char_input_r, valid_char_input_r_with_pad, \
+            valid_char_mask, valid_char_pos_input, valid_char_offset_input = split_text_and_get_loc_info(valid_data,
+                                                                                                         word_vocab,
+                                                                                                         char_vocab,
+                                                                                                         word_cut_func)
         pickle_dump(valid_word_input_l, os.path.join(file_folder, 'valid_word_input_l.pkl'))
         pickle_dump(valid_word_input_r, os.path.join(file_folder, 'valid_word_input_r.pkl'))
+        pickle_dump(valid_word_input_r_with_pad, os.path.join(file_folder, 'valid_word_input_r_with_pad.pkl'))
+        pickle_dump(valid_word_mask, os.path.join(file_folder, 'valid_word_mask.pkl'))
         pickle_dump(valid_word_pos_input, os.path.join(file_folder, 'valid_word_pos_input.pkl'))
         pickle_dump(valid_word_offset_input, os.path.join(file_folder, 'valid_word_offset_input.pkl'))
         pickle_dump(valid_char_input_l, os.path.join(file_folder, 'valid_char_input_l.pkl'))
         pickle_dump(valid_char_input_r, os.path.join(file_folder, 'valid_char_input_r.pkl'))
+        pickle_dump(valid_char_input_r_with_pad, os.path.join(file_folder, 'valid_char_input_r_with_pad.pkl'))
+        pickle_dump(valid_char_mask, os.path.join(file_folder, 'valid_char_mask.pkl'))
         pickle_dump(valid_char_pos_input, os.path.join(file_folder, 'valid_char_pos_input.pkl'))
         pickle_dump(valid_char_offset_input, os.path.join(file_folder, 'valid_char_offset_input.pkl'))
 
-        test_word_input_l, test_word_input_r, test_word_pos_input, test_word_offset_input, test_char_input_l, \
-            test_char_input_r, test_char_pos_input, test_char_offset_input = split_text_and_get_loc_info(
-                test_data, word_vocab, char_vocab, word_cut_func)
+        test_word_input_l, test_word_input_r, test_word_input_r_with_pad, test_word_mask, test_word_pos_input, \
+            test_word_offset_input, test_char_input_l, test_char_input_r, test_char_input_r_with_pad, test_char_mask, \
+            test_char_pos_input, test_char_offset_input = split_text_and_get_loc_info(test_data, word_vocab,
+                                                                                      char_vocab, word_cut_func)
         pickle_dump(test_word_input_l, os.path.join(file_folder, 'test_word_input_l.pkl'))
         pickle_dump(test_word_input_r, os.path.join(file_folder, 'test_word_input_r.pkl'))
+        pickle_dump(test_word_input_r_with_pad, os.path.join(file_folder, 'test_word_input_r_with_pad.pkl'))
+        pickle_dump(test_word_mask, os.path.join(file_folder, 'test_word_mask.pkl'))
         pickle_dump(test_word_pos_input, os.path.join(file_folder, 'test_word_pos_input.pkl'))
         pickle_dump(test_word_offset_input, os.path.join(file_folder, 'test_word_offset_input.pkl'))
         pickle_dump(test_char_input_l, os.path.join(file_folder, 'test_char_input_l.pkl'))
         pickle_dump(test_char_input_r, os.path.join(file_folder, 'test_char_input_r.pkl'))
+        pickle_dump(test_char_input_r_with_pad, os.path.join(file_folder, 'test_char_input_r_with_pad.pkl'))
+        pickle_dump(test_char_mask, os.path.join(file_folder, 'test_char_mask.pkl'))
         pickle_dump(test_char_pos_input, os.path.join(file_folder, 'test_char_pos_input.pkl'))
         pickle_dump(test_char_offset_input, os.path.join(file_folder, 'test_char_offset_input.pkl'))
 

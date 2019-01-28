@@ -15,21 +15,20 @@
 """
 
 import os
-import math
 import numpy as np
 
 from keras.models import Model
 from keras.layers import Input, Embedding, SpatialDropout1D, Dropout, Conv1D, MaxPool1D, Flatten, concatenate, Dense, \
     LSTM, Bidirectional, Activation, MaxPooling1D, Add, GRU, GlobalAveragePooling1D, GlobalMaxPooling1D, RepeatVector, \
     TimeDistributed, Permute, multiply, Lambda, add, Masking, BatchNormalization, Softmax, Reshape, ReLU, \
-    ZeroPadding1D
+    ZeroPadding1D, subtract
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils import to_categorical
 from keras.callbacks import Callback, ModelCheckpoint, EarlyStopping
 import keras.backend as K
+import tensorflow as tf
 
-
-from custom_layers import Attention, RecurrentAttention, InteractiveAttention
+from custom_layers import Attention, RecurrentAttention, InteractiveAttention, ContentAttention
 from utils import get_score_senti
 
 
@@ -69,7 +68,7 @@ class SentimentModel(object):
         self.right_max_len = self.config.right_max_len[self.config.data_name][self.level]
         self.asp_max_len = self.config.asp_max_len[self.config.data_name][self.level]
 
-        if self.config.use_text_input or self.config.use_split_text_input:
+        if self.config.use_text_input or self.config.use_text_input_l or self.config.use_text_input_r or self.config.use_text_input_r_with_pad:
             self.text_embeddings = np.load('./data/%s/%s_%s.npy' % (self.config.data_folder, self.level,
                                                                     self.config.word_embed_type))
         else:
@@ -108,11 +107,11 @@ class SentimentModel(object):
             verbose=self.config.checkpoint_verbose
         ))
 
-        self.callbacks.append(EarlyStopping(
-            monitor=self.config.early_stopping_monitor,
-            mode=self.config.early_stopping_mode,
-            patience=self.config.early_stopping_patience
-        ))
+        # self.callbacks.append(EarlyStopping(
+        #     monitor=self.config.early_stopping_monitor,
+        #     mode=self.config.early_stopping_mode,
+        #     patience=self.config.early_stopping_patience
+        # ))
 
     def load(self):
         print('loading model checkpoint {} ...\n'.format('%s.hdf5') % self.config.exp_name)
@@ -148,9 +147,18 @@ class SentimentModel(object):
         network_inputs = list()
         if self.config.use_text_input:
             network_inputs.append(Input(shape=(self.max_len,), name='input_text'))
-        if self.config.use_split_text_input:
-            network_inputs.append(Input(shape=(self.left_max_len,), name='input_text_l'))
-            network_inputs.append(Input(shape=(self.right_max_len,), name='input_text_r'))
+        if self.config.use_text_input_l:
+            if self.config.model_name == 'cabasc':
+                network_inputs.append(Input(shape=(self.max_len,), name='input_text_l'))
+            else:
+                network_inputs.append(Input(shape=(self.left_max_len,), name='input_text_l'))
+        if self.config.use_text_input_r:
+            if self.config.model_name == 'cabasc':
+                network_inputs.append(Input(shape=(self.max_len,), name='input_text_r'))
+            else:
+                network_inputs.append(Input(shape=(self.right_max_len,), name='input_text_r'))
+        if self.config.use_text_input_r_with_pad:
+            network_inputs.append(Input(shape=(self.max_len,), name='input_text_r_with_pad'))
         if self.config.use_aspect_input:
             network_inputs.append(Input(shape=(1, ), name='input_aspect'))
         if self.config.use_aspect_text_input:
@@ -159,6 +167,8 @@ class SentimentModel(object):
             network_inputs.append(Input(shape=(self.max_len,), name='input_loc_info'))
         if self.config.use_offset_input:
             network_inputs.append(Input(shape=(self.max_len,), name='input_offset_info'))
+        if self.config.use_mask:
+            network_inputs.append(Input(shape=(self.max_len,), name='input_mask'))
 
         if len(network_inputs) == 1:
             network_inputs = network_inputs[0]
@@ -196,9 +206,11 @@ class SentimentModel(object):
             text, aspect_text = input_data
             input_pad = [pad_sequences(text, self.max_len), pad_sequences(aspect_text, self.asp_max_len)]
         elif self.config.model_name == 'cabasc':
-            text_l, text_r, aspect, loc = input_data
-            input_pad = [pad_sequences(text_l, self.left_max_len), pad_sequences(text_r, self.right_max_len),
-                         np.array(aspect), pad_sequences(loc, self.max_len)]
+            text, text_l, text_r, aspect, mask = input_data
+            input_pad = [pad_sequences(text, self.max_len, padding='post', truncating='post'),
+                         pad_sequences(text_l, self.max_len, padding='post', truncating='post'),
+                         pad_sequences(text_r, self.max_len, padding='post', truncating='post'),
+                         np.array(aspect), pad_sequences(mask, self.max_len, padding='post', truncating='post')]
         else:
             raise ValueError('model name `{}` not understood'.format(self.config.model_name))
         return input_pad
@@ -402,8 +414,11 @@ class SentimentModel(object):
         attend_hidden = multiply([hidden_vecs, attend_weight_expand])
         attend_hidden = Lambda(lambda x: K.sum(x, axis=1))(attend_hidden)
 
-        # final_output = Activation('tanh')(Dense(self.config.lstm_units)(attend_hidden) + Dense(self.config.lstm_units)(state_h))
-        return Model([input_text, input_aspect], attend_hidden)
+        attend_hidden_dense = Dense(self.config.lstm_units)(attend_hidden)
+        last_hidden_dense = Dense(self.config.lstm_units)(state_h)
+        final_output = Activation('tanh')(add([attend_hidden_dense, last_hidden_dense]))
+
+        return Model([input_text, input_aspect], final_output)
 
     # deep memory network
     def memnet(self):
@@ -520,27 +535,64 @@ class SentimentModel(object):
 
     # content attention based aspect based sentiment classification model
     def cabasc(self):
-        input_l = Input(shape=(self.left_max_len,))
-        input_r = Input(shape=(self.right_max_len,))
+        def sequence_mask(sequence):
+            return K.sign(K.max(K.abs(sequence), 2))
+
+        def sequence_length(sequence):
+            return K.cast(K.sum(sequence_mask(sequence), 1), tf.int32)
+
+        input_text = Input(shape=(self.max_len,))
+        input_text_l = Input(shape=(self.max_len,))
+        input_text_r = Input(shape=(self.max_len,))
+        input_aspect = Input(shape=(1,))
+        input_mask = Input(shape=(self.max_len, ))
 
         word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
                                    weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
                                    mask_zero=True)
-        input_l_embed = SpatialDropout1D(0.2)(word_embedding(input_l))
-        input_r_embed = SpatialDropout1D(0.2)(word_embedding(input_r))
+        text_embed = SpatialDropout1D(self.config.dropout)(word_embedding(input_text))
+        text_l_embed = SpatialDropout1D(self.config.dropout)(word_embedding(input_text_l))
+        text_r_embed = SpatialDropout1D(self.config.dropout)(word_embedding(input_text_r))
+
+        if self.config.aspect_embed_type == 'random':
+            asp_embedding = Embedding(input_dim=self.n_aspect, output_dim=self.config.aspect_embed_dim)
+        else:
+            asp_embedding = Embedding(input_dim=self.aspect_embeddings.shape[0],
+                                      output_dim=self.config.aspect_embed_dim,
+                                      trainable=self.config.aspect_embed_trainable)
+        aspect_embed = asp_embedding(input_aspect)
+        aspect_embed = Flatten()(aspect_embed)  # reshape to 2d
 
         # regarding aspect string as the first unit
-        hidden_l = GRU(self.config.lstm_units, go_backwards=True)(input_l_embed)
-        hidden_r = GRU(self.config.lstm_units)(input_r_embed)
+        hidden_l = GRU(self.config.lstm_units, go_backwards=True, return_sequences=True)(text_l_embed)
+        hidden_r = GRU(self.config.lstm_units, return_sequences=True)(text_r_embed)
 
+        # left context attention
         context_attend_l = TimeDistributed(Dense(1, activation='sigmoid'))(hidden_l)
-        context_attend_l = Lambda(lambda x: K.squeeze(context_attend_l, -1))(context_attend_l)
+        # Note: I couldn't find `reverse_sequence` in keras
+        context_attend_l = Lambda(lambda x: tf.reverse_sequence(x, sequence_length(x), 1, 0))(context_attend_l)
+        context_attend_l = Lambda(lambda x: K.squeeze(x, -1))(context_attend_l)
+
+        # right context attention
         context_attend_r = TimeDistributed(Dense(1, activation='sigmoid'))(hidden_r)
-        context_attend_r = TimeDistributed(Dense(1, activation='sigmoid'))(context_attend_r)
+        context_attend_r = Lambda(lambda x: K.squeeze(x, -1))(context_attend_r)
 
+        # combine context attention
+        # aspect_text_embed = subtract([add([text_l_embed, text_r_embed]), text_embed])
+        # aspect_text_mask = Lambda(lambda x: sequence_mask(x))(aspect_text_embed)
+        # text_mask = Lambda(lambda x: sequence_mask(x))(text_embed)
+        # context_mask = subtract([text_mask, aspect_text_mask])
+        # aspect_text_mask_half = Lambda(lambda x: x*0.5)(aspect_text_mask)
+        # combine_mask = add([context_mask, aspect_text_mask_half])  # 1 for context, 0.5 for aspect
+        context_attend = multiply([add([context_attend_l, context_attend_r]), input_mask])
 
+        # apply context attention
+        context_attend_expand = Lambda(lambda x: K.expand_dims(x))(context_attend)
+        memory = multiply([text_embed, context_attend_expand])
 
+        # sentence-level content attention
+        sentence = Lambda(lambda x: K.mean(x, axis=1))(memory)
+        final_output = ContentAttention()([memory, aspect_embed, sentence])
 
-
-
+        return Model([input_text, input_text_l, input_text_r, input_aspect, input_mask], final_output)
 

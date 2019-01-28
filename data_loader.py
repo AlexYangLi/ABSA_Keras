@@ -18,15 +18,19 @@ import os
 from utils import pickle_load
 
 
-def load_input_data(data_folder, data_kind, level, use_text_input, use_split_text_input, use_aspect_input,
-                    use_aspect_text_input, use_loc_input, use_offset_input):
+def load_input_data(data_folder, data_kind, level, use_text_input, use_text_input_l, use_text_input_r,
+                    use_text_input_r_with_pad, use_aspect_input, use_aspect_text_input, use_loc_input,
+                    use_offset_input, use_mask):
     dirname = os.path.join('./data', data_folder)
     input_data = []
     if use_text_input:
         input_data.append(pickle_load(os.path.join(dirname, '{}_{}_input.pkl'.format(data_kind, level))))
-    if use_split_text_input:
+    if use_text_input_l:
         input_data.append(pickle_load(os.path.join(dirname, '{}_{}_input_l.pkl'.format(data_kind, level))))
+    if use_text_input_r:
         input_data.append(pickle_load(os.path.join(dirname, '{}_{}_input_r.pkl'.format(data_kind, level))))
+    if use_text_input_r_with_pad:
+        input_data.append(pickle_load(os.path.join(dirname, '{}_{}_input_r_with_pad.pkl'.format(data_kind, level))))
     if use_aspect_input:
         input_data.append(pickle_load(os.path.join(dirname, '{}_aspect_input.pkl'.format(data_kind))))
     if use_aspect_text_input:
@@ -35,6 +39,8 @@ def load_input_data(data_folder, data_kind, level, use_text_input, use_split_tex
         input_data.append(pickle_load(os.path.join(dirname, '{}_{}_pos_input.pkl'.format(data_kind, level))))
     if use_offset_input:
         input_data.append(pickle_load(os.path.join(dirname, '{}_{}_offset_input.pkl'.format(data_kind, level))))
+    if use_mask:
+        input_data.append(pickle_load(os.path.join(dirname, '{}_{}_mask.pkl'.format(data_kind, level))))
     if len(input_data) == 1:
         input_data = input_data[0]
     if len(input_data) == 0:

@@ -333,3 +333,86 @@ class InteractiveAttention(Layer):
                     (asp_text_shape[0], asp_text_shape[1])]
         else:
             return context_shape[0], context_shape[-1]+asp_text_shape[-1]
+
+
+class ContentAttention(Layer):
+    """
+    Sentence-level content attention.
+    Supporting Masking.
+    Follows the work of Liu et al. [https://dl.acm.org/citation.cfm?id=3186001]
+    "Content Attention Model for Aspect Based Sentiment Analysis"
+    """
+
+    def __init__(self, return_attend_weight=False, initializer='orthogonal', regularizer=None,
+                 constraint=None, **kwargs):
+        self.return_attend_weight = return_attend_weight
+
+        self.initializer = initializers.get(initializer)
+        self.regularizer = regularizers.get(regularizer)
+        self.constraint = constraints.get(constraint)
+
+        self.supports_masking = True
+        super(ContentAttention, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        assert isinstance(input_shape, list)
+        context_shape, _, _ = input_shape
+
+        self.context_w = self.add_weight(shape=(context_shape[-1], context_shape[-1]), initializer=self.initializer,
+                                         regularizer=self.regularizer, constraint=self.constraint,
+                                         name='{}_context_w'.format(self.name))
+        self.aspect_w = self.add_weight(shape=(context_shape[-1], context_shape[-1]), initializer=self.initializer,
+                                        regularizer=self.regularizer, constraint=self.constraint,
+                                        name='{}_aspect_w'.format(self.name))
+        self.sent_w = self.add_weight(shape=(context_shape[-1], context_shape[-1]), initializer=self.initializer,
+                                      regularizer=self.regularizer, constraint=self.constraint,
+                                      name='{}_sentence_w'.format(self.name))
+
+        self.attend_w = self.add_weight(shape=(context_shape[-1], 1), initializer=self.initializer,
+                                        regularizer=self.regularizer, constraint=self.constraint,
+                                        name='{}_attend_w'.format(self.name))
+        super(ContentAttention, self).build(input_shape)
+
+    def call(self, inputs, mask=None):
+        assert isinstance(inputs, list)
+        context, aspect, sentence = inputs
+        context_mask, _, _, = mask
+        time_step = K.shape(context)[1]
+
+        repeat_aspect = K.repeat(aspect, time_step)
+        repeat_sent = K.repeat(sentence, time_step)
+
+        g = K.dot(K.tanh(K.dot(context, self.context_w) + K.dot(repeat_aspect, self.aspect_w) + K.dot(repeat_sent, self.sent_w)), self.attend_w)
+        a = K.exp(K.squeeze(g, axis=-1))
+
+        # apply mask after the exp. will be re-normalized next
+        if context_mask is not None:
+            a *= K.cast(context_mask, K.floatx())
+
+        a /= K.cast(K.sum(a, axis=-1, keepdims=True) + K.epsilon(), K.floatx())     # [batch_size, time_steps]
+
+        # apply attention
+        a_expand = K.expand_dims(a)  # [batch_size, time_steps, 1]
+        attend_context = K.sum(context * a_expand, axis=1) + sentence  # [batch_size, hidden]
+
+        if self.return_attend_weight:
+            return attend_context, a
+        else:
+            return attend_context
+
+    def compute_mask(self, inputs, mask=None):
+        return None
+
+    def compute_output_shape(self, input_shape):
+        assert isinstance(input_shape, list)
+        context_shape, _, _ = input_shape
+
+        if self.return_attend_weight:
+            return (context_shape[0], context_shape[-1]), (context_shape[0], context_shape[-1])
+        else:
+            return context_shape[0], context_shape[-1]
+
+
+
+
+

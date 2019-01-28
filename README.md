@@ -174,7 +174,8 @@ Note: results in the parenthese is the performance of models with word embedding
 |cabasc   |               |                 |                   |                |                |                  |
 
 - Personal conclusion
-1. I found `AT-LSTM` is always better than `AE-LSTM` & `ATAE-LSTM`. Actually it's not just on SemEval14 & twitter data, but many other sentiment analysis data.
+1. I found `AT-LSTM` is always better than `AE-LSTM` & `ATAE-LSTM`. Actually it's not just on SemEval14 & twitter data, but also many other sentiment analysis data.
 2. Surprisingly, I failed to achieved similar performance as stated in the parper of `Memnet`. Or maybe there are bugs in the code?
 3. `TD-LSTM` performs unexpectedly well.
 4. Models with fixed word embeddings are generally better than those with fine-tuned word embeddings, which is consistent with the paper of `RAM`.
+5. L2 regularization didn't help.
