@@ -284,7 +284,7 @@ class InteractiveAttention(Layer):
         self.aspect_b = self.add_weight(shape=(asp_text_shape[1],), initializer='zero', regularizer=self.regularizer,
                                         constraint=self.constraint, name='{}_aspect_b'.format(self.name))
 
-        super(InteractiveAttention,self).build(input_shape)
+        super(InteractiveAttention, self).build(input_shape)
 
     def call(self, inputs, mask=None):
         assert isinstance(inputs, list)
@@ -408,7 +408,7 @@ class ContentAttention(Layer):
         context_shape, _, _ = input_shape
 
         if self.return_attend_weight:
-            return (context_shape[0], context_shape[-1]), (context_shape[0], context_shape[-1])
+            return [(context_shape[0], context_shape[-1]), (context_shape[0], context_shape[1])]
         else:
             return context_shape[0], context_shape[-1]
 
