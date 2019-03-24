@@ -52,3 +52,13 @@ def load_label(data_folder, data_kind):
     dirname = os.path.join('./data', data_folder)
     return pickle_load(os.path.join(dirname, '{}_label.pkl'.format(data_kind)))
 
+
+def load_vocab(data_folder, vocab_type):
+    dirname = os.path.join('./data', data_folder)
+    return pickle_load(os.path.join(dirname, vocab_type+'_vocab.pkl'))
+
+
+def load_idx2token(data_folder, vocab_type):
+    vocab = load_vocab(data_folder, vocab_type)
+    return dict((idx, word) for word, idx in vocab.items())
+

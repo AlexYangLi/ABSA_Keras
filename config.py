@@ -74,6 +74,15 @@ class Config(object):
         self.early_stopping_verbose = 1
         self.early_stopping_mode = 'max'
 
+        # elmo embedding configure
+        self.use_elmo = True
+        self.use_elmo_alone = False
+        self.elmo_hub_url = './raw_data/tfhub_elmo_2'
+        self.elmo_output_mode = 'elmo'
+        self.idx2token = None
+        self.idx2aspect_token = None
+        self.elmo_trainable = True
+
     def init_input(self):
         if self.model_name == 'td_lstm':
             self.use_text_input, self.use_text_input_l, self.use_text_input_r = False, True, True

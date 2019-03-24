@@ -28,8 +28,9 @@ from keras.callbacks import Callback, ModelCheckpoint, EarlyStopping
 import keras.backend as K
 import tensorflow as tf
 
-from custom_layers import Attention, RecurrentAttention, InteractiveAttention, ContentAttention
+from custom_layers import Attention, RecurrentAttention, InteractiveAttention, ContentAttention, ELMoEmbedding
 from utils import get_score_senti
+from data_loader import load_idx2token
 
 
 # callback for sentiment analysis model
@@ -63,6 +64,7 @@ class SentimentModel(object):
     def __init__(self, config):
         self.config = config
         self.level = self.config.level
+        self.use_elmo = self.config.use_elmo
         self.max_len = self.config.max_len[self.config.data_name][self.level]
         self.left_max_len = self.config.left_max_len[self.config.data_name][self.level]
         self.right_max_len = self.config.right_max_len[self.config.data_name][self.level]
@@ -71,6 +73,7 @@ class SentimentModel(object):
         if self.config.use_text_input or self.config.use_text_input_l or self.config.use_text_input_r or self.config.use_text_input_r_with_pad:
             self.text_embeddings = np.load('./data/%s/%s_%s.npy' % (self.config.data_folder, self.level,
                                                                     self.config.word_embed_type))
+            self.config.idx2token = load_idx2token(self.config.data_folder, self.level)
         else:
             self.text_embeddings = None
         if self.config.use_aspect_input:
@@ -85,6 +88,7 @@ class SentimentModel(object):
             self.aspect_text_embeddings = np.load('./data/%s/aspect_text_%s_%s.npy' % (self.config.data_folder,
                                                                                        self.level,
                                                                                        self.config.word_embed_type))
+            self.config.idx2aspect_token = load_idx2token(self.config.data_folder, 'aspect_text_{}'.format(self.level))
         else:
             self.aspect_text_embeddings = None
 
@@ -249,11 +253,29 @@ class SentimentModel(object):
         input_l = Input(shape=(self.left_max_len, ))
         input_r = Input(shape=(self.right_max_len, ))
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
-                                  weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                  mask_zero=True)
-        input_l_embed = SpatialDropout1D(0.2)(word_embedding(input_l))
-        input_r_embed = SpatialDropout1D(0.2)(word_embedding(input_r))
+        if self.use_elmo:
+            l_elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                             mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                             elmo_trainable=self.config.elmo_trainable)
+            r_elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                             mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                             elmo_trainable=self.config.elmo_trainable)
+            if self.config.use_elmo_alone:
+                input_l_embed = SpatialDropout1D(0.2)(l_elmo_embedding(input_l))
+                input_r_embed = SpatialDropout1D(0.2)(r_elmo_embedding(input_r))
+            else:
+                word_embedding = Embedding(input_dim=self.text_embeddings.shape[0],
+                                           output_dim=self.config.word_embed_dim,
+                                           weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                           mask_zero=True)
+                input_l_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_l), l_elmo_embedding(input_l)]))
+                input_r_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_r), r_elmo_embedding(input_r)]))
+        else:
+            word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
+                                       weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                       mask_zero=True)
+            input_l_embed = SpatialDropout1D(0.2)(word_embedding(input_l))
+            input_r_embed = SpatialDropout1D(0.2)(word_embedding(input_r))
 
         # regarding aspect string as the last unit
         hidden_l = LSTM(self.config.lstm_units)(input_l_embed)
@@ -269,11 +291,29 @@ class SentimentModel(object):
         input_r = Input(shape=(self.right_max_len,))
         input_aspect = Input(shape=(1,))
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
-                                   weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)
-        input_l_embed = SpatialDropout1D(0.2)(word_embedding(input_l))
-        input_r_embed = SpatialDropout1D(0.2)(word_embedding(input_r))
+        if self.use_elmo:
+            l_elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                             mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                             elmo_trainable=self.config.elmo_trainable)
+            r_elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                             mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                             elmo_trainable=self.config.elmo_trainable)
+            if self.config.use_elmo_alone:
+                input_l_embed = SpatialDropout1D(0.2)(l_elmo_embedding(input_l))
+                input_r_embed = SpatialDropout1D(0.2)(r_elmo_embedding(input_r))
+            else:
+                word_embedding = Embedding(input_dim=self.text_embeddings.shape[0],
+                                           output_dim=self.config.word_embed_dim,
+                                           weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                           mask_zero=True)
+                input_l_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_l), l_elmo_embedding(input_l)]))
+                input_r_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_r), r_elmo_embedding(input_r)]))
+        else:
+            word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
+                                       weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                       mask_zero=True)
+            input_l_embed = SpatialDropout1D(0.2)(word_embedding(input_l))
+            input_r_embed = SpatialDropout1D(0.2)(word_embedding(input_r))
 
         if self.config.aspect_embed_type == 'random':
             asp_embedding = Embedding(input_dim=self.n_aspect, output_dim=self.config.aspect_embed_dim)
@@ -302,10 +342,23 @@ class SentimentModel(object):
         input_text = Input(shape=(self.max_len,))
         input_aspect = Input(shape=(1,),)
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
-                                   weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)
-        text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
+        if self.use_elmo:
+            elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                           mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                           elmo_trainable=self.config.elmo_trainable)
+            if self.config.use_elmo_alone:
+                text_embed = SpatialDropout1D(0.2)(elmo_embedding(input_text))
+            else:
+                word_embedding = Embedding(input_dim=self.text_embeddings.shape[0],
+                                           output_dim=self.config.word_embed_dim,
+                                           weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                           mask_zero=True)
+                text_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_text), elmo_embedding(input_text)]))
+        else:
+            word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
+                                       weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                       mask_zero=True)
+            text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
 
         if self.config.aspect_embed_type == 'random':
             asp_embedding = Embedding(input_dim=self.n_aspect, output_dim=self.config.aspect_embed_dim)
@@ -359,10 +412,23 @@ class SentimentModel(object):
         input_text = Input(shape=(self.max_len,))
         input_aspect = Input(shape=(1,),)
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
-                                   weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)
-        text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
+        if self.use_elmo:
+            elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                           mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                           elmo_trainable=self.config.elmo_trainable)
+            if self.config.use_elmo_alone:
+                text_embed = SpatialDropout1D(0.2)(elmo_embedding(input_text))
+            else:
+                word_embedding = Embedding(input_dim=self.text_embeddings.shape[0],
+                                           output_dim=self.config.word_embed_dim,
+                                           weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                           mask_zero=True)
+                text_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_text), elmo_embedding(input_text)]))
+        else:
+            word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
+                                       weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                       mask_zero=True)
+            text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
 
         if self.config.aspect_embed_type == 'random':
             asp_embedding = Embedding(input_dim=self.n_aspect, output_dim=self.config.aspect_embed_dim)
@@ -389,10 +455,23 @@ class SentimentModel(object):
         input_text = Input(shape=(self.max_len,))
         input_aspect = Input(shape=(1,), )
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
-                                   weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)
-        text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
+        if self.use_elmo:
+            elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                           mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                           elmo_trainable=self.config.elmo_trainable)
+            if self.config.use_elmo_alone:
+                text_embed = SpatialDropout1D(0.2)(elmo_embedding(input_text))
+            else:
+                word_embedding = Embedding(input_dim=self.text_embeddings.shape[0],
+                                           output_dim=self.config.word_embed_dim,
+                                           weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                           mask_zero=True)
+                text_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_text), elmo_embedding(input_text)]))
+        else:
+            word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
+                                       weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                       mask_zero=True)
+            text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
 
         if self.config.aspect_embed_type == 'random':
             asp_embedding = Embedding(input_dim=self.n_aspect, output_dim=self.config.aspect_embed_dim)
@@ -427,10 +506,24 @@ class SentimentModel(object):
         input_aspect = Input(shape=(1,))
         inputs = [input_text, input_aspect]
 
+        # if self.use_elmo:
+        #     elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+        #                                    mask_zero=True, hub_url=self.config.elmo_hub_url,
+        #                                    elmo_trainable=self.config.elmo_trainable)
+        #     if self.config.use_elmo_alone:
+        #         text_embed = SpatialDropout1D(0.2)(elmo_embedding(input_text))
+        #     else:
+        #         word_embedding = Embedding(input_dim=self.text_embeddings.shape[0],
+        #                                    output_dim=self.config.word_embed_dim,
+        #                                    weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+        #                                    mask_zero=True)
+        #         text_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_text), elmo_embedding(input_text)]))
+        # else:
         word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
                                    weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
                                    mask_zero=True)
         text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
+
         if self.config.use_loc_input:   # location attention
             input_loc = Input(shape=(self.max_len,))
             inputs.append(input_loc)
@@ -475,10 +568,23 @@ class SentimentModel(object):
         input_aspect = Input(shape=(1,))
         inputs = [input_text, input_aspect]
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
-                                   weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)
-        text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
+        if self.use_elmo:
+            elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                           mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                           elmo_trainable=self.config.elmo_trainable)
+            if self.config.use_elmo_alone:
+                text_embed = SpatialDropout1D(0.2)(elmo_embedding(input_text))
+            else:
+                word_embedding = Embedding(input_dim=self.text_embeddings.shape[0],
+                                           output_dim=self.config.word_embed_dim,
+                                           weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                           mask_zero=True)
+                text_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_text), elmo_embedding(input_text)]))
+        else:
+            word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
+                                       weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                       mask_zero=True)
+            text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
 
         if self.config.aspect_embed_type == 'random':
             asp_embedding = Embedding(input_dim=self.n_aspect, output_dim=self.config.aspect_embed_dim)
@@ -514,17 +620,46 @@ class SentimentModel(object):
         input_text = Input(shape=(self.max_len,))
         input_aspect_text = Input(shape=(self.asp_max_len,), )
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
-                                   weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)
-        text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
-
-        asp_text_embedding = Embedding(input_dim=self.aspect_text_embeddings.shape[0],
-                                       output_dim=self.config.word_embed_dim,
-                                       weights=[self.aspect_text_embeddings],
-                                       trainable=self.config.word_embed_trainable,
+        if self.use_elmo:
+            elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                           mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                           elmo_trainable=self.config.elmo_trainable)
+            if self.config.use_elmo_alone:
+                text_embed = SpatialDropout1D(0.2)(elmo_embedding(input_text))
+            else:
+                word_embedding = Embedding(input_dim=self.text_embeddings.shape[0],
+                                           output_dim=self.config.word_embed_dim,
+                                           weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                           mask_zero=True)
+                text_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_text), elmo_embedding(input_text)]))
+        else:
+            word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
+                                       weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
                                        mask_zero=True)
-        asp_text_embed = asp_text_embedding(input_aspect_text)
+            text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
+
+        if self.use_elmo:
+            asp_elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode,
+                                               idx2word=self.config.idx2aspect_token,
+                                               mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                               elmo_trainable=self.config.elmo_trainable)
+            if self.config.use_elmo_alone:
+                asp_text_embed = SpatialDropout1D(0.2)(asp_elmo_embedding(input_aspect_text))
+            else:
+                asp_text_embedding = Embedding(input_dim=self.aspect_text_embeddings.shape[0],
+                                               output_dim=self.config.word_embed_dim,
+                                               weights=[self.aspect_text_embeddings],
+                                               trainable=self.config.word_embed_trainable,
+                                               mask_zero=True)
+                asp_text_embed = SpatialDropout1D(0.2)(concatenate([asp_text_embedding(input_aspect_text),
+                                                                    asp_elmo_embedding(input_aspect_text)]))
+        else:
+            asp_text_embedding = Embedding(input_dim=self.aspect_text_embeddings.shape[0],
+                                           output_dim=self.config.word_embed_dim,
+                                           weights=[self.aspect_text_embeddings],
+                                           trainable=self.config.word_embed_trainable,
+                                           mask_zero=True)
+            asp_text_embed = SpatialDropout1D(0.2)(asp_text_embedding(input_aspect_text))
 
         hidden_text = LSTM(self.config.lstm_units, return_sequences=True)(text_embed)
         hidden_asp_text = LSTM(self.config.lstm_units, return_sequences=True)(asp_text_embed)
@@ -547,12 +682,35 @@ class SentimentModel(object):
         input_aspect = Input(shape=(1,))
         input_mask = Input(shape=(self.max_len, ))
 
-        word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
-                                   weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
-                                   mask_zero=True)
-        text_embed = SpatialDropout1D(self.config.dropout)(word_embedding(input_text))
-        text_l_embed = SpatialDropout1D(self.config.dropout)(word_embedding(input_text_l))
-        text_r_embed = SpatialDropout1D(self.config.dropout)(word_embedding(input_text_r))
+        if self.use_elmo:
+            text_elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                                mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                                elmo_trainable=self.config.elmo_trainable)
+            l_elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                             mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                             elmo_trainable=self.config.elmo_trainable)
+            r_elmo_embedding = ELMoEmbedding(output_mode=self.config.elmo_output_mode, idx2word=self.config.idx2token,
+                                             mask_zero=True, hub_url=self.config.elmo_hub_url,
+                                             elmo_trainable=self.config.elmo_trainable)
+            if self.config.use_elmo_alone:
+                text_embed = SpatialDropout1D(0.2)(text_elmo_embedding(input_text))
+                text_l_embed = SpatialDropout1D(0.2)(l_elmo_embedding(input_text_l))
+                text_r_embed = SpatialDropout1D(0.2)(r_elmo_embedding(input_text_r))
+            else:
+                word_embedding = Embedding(input_dim=self.text_embeddings.shape[0],
+                                           output_dim=self.config.word_embed_dim,
+                                           weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                           mask_zero=True)
+                text_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_text), text_elmo_embedding(input_text)]))
+                text_l_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_text_l), l_elmo_embedding(input_text_l)]))
+                text_r_embed = SpatialDropout1D(0.2)(concatenate([word_embedding(input_text_r), r_elmo_embedding(input_text_r)]))
+        else:
+            word_embedding = Embedding(input_dim=self.text_embeddings.shape[0], output_dim=self.config.word_embed_dim,
+                                       weights=[self.text_embeddings], trainable=self.config.word_embed_trainable,
+                                       mask_zero=True)
+            text_embed = SpatialDropout1D(0.2)(word_embedding(input_text))
+            text_l_embed = SpatialDropout1D(0.2)(word_embedding(input_text_l))
+            text_r_embed = SpatialDropout1D(0.2)(word_embedding(input_text_r))
 
         if self.config.aspect_embed_type == 'random':
             asp_embedding = Embedding(input_dim=self.n_aspect, output_dim=self.config.aspect_embed_dim)

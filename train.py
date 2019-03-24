@@ -19,6 +19,7 @@ import time
 from config import Config
 from data_loader import load_input_data, load_label
 from models import SentimentModel
+from utils import pickle_load
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
@@ -37,6 +38,9 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
     if config.use_aspect_input:
         config.exp_name += '_aspv_{}'.format(config.aspect_embed_type)
         config.exp_name = config.exp_name + '_update' if config.aspect_embed_trainable else config.exp_name + '_fix'
+    if config.use_emlo:
+        config.exp_name += '_elmo_alone_{}_mode_{}_{}'.format(config.use_elmo_alone, config.elmo_output_mode,
+                                                              'update' if config.elmo_trainable else 'fix')
 
     print(config.exp_name)
     model = SentimentModel(config)
@@ -82,70 +86,73 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
 
 if __name__ == '__main__':
     config = Config()
+    config.use_emlo = True
+    config.use_elmo_alone = False
+    config.elmo_trainable = True
 
-    config.word_embed_trainable = True
-    config.aspect_embed_trainable = True
-    train_model('laptop/term', 'laptop', 'word', 'td_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'tc_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'ae_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'at_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'atae_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'memnet')
-    train_model('laptop/term', 'laptop', 'word', 'ram')
-    train_model('laptop/term', 'laptop', 'word', 'ian')
-    train_model('laptop/term', 'laptop', 'word', 'cabasc')
-
-    train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'ae_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'at_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'atae_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'memnet')
-    train_model('restaurant/term', 'restaurant', 'word', 'ram')
-    train_model('restaurant/term', 'restaurant', 'word', 'ian')
-    train_model('restaurant/term', 'restaurant', 'word', 'cabasc')
-
-    train_model('twitter', 'twitter', 'word', 'td_lstm')
-    train_model('twitter', 'twitter', 'word', 'tc_lstm')
-    train_model('twitter', 'twitter', 'word', 'ae_lstm')
-    train_model('twitter', 'twitter', 'word', 'at_lstm')
-    train_model('twitter', 'twitter', 'word', 'atae_lstm')
-    train_model('twitter', 'twitter', 'word', 'memnet')
-    train_model('twitter', 'twitter', 'word', 'ram')
-    train_model('twitter', 'twitter', 'word', 'ian')
-    train_model('twitter', 'twitter', 'word', 'cabasc')
-
-    config.word_embed_trainable = False
-    config.aspect_embed_trainable = True
-    train_model('laptop/term', 'laptop', 'word', 'td_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'tc_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'ae_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'at_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'atae_lstm')
-    train_model('laptop/term', 'laptop', 'word', 'memnet')
-    train_model('laptop/term', 'laptop', 'word', 'ram')
-    train_model('laptop/term', 'laptop', 'word', 'ian')
-    train_model('laptop/term', 'laptop', 'word', 'cabasc')
-
-    train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'ae_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'at_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'atae_lstm')
-    train_model('restaurant/term', 'restaurant', 'word', 'memnet')
-    train_model('restaurant/term', 'restaurant', 'word', 'ram')
-    train_model('restaurant/term', 'restaurant', 'word', 'ian')
-    train_model('restaurant/term', 'restaurant', 'word', 'cabasc')
-
-    train_model('twitter', 'twitter', 'word', 'td_lstm')
-    train_model('twitter', 'twitter', 'word', 'tc_lstm')
-    train_model('twitter', 'twitter', 'word', 'ae_lstm')
-    train_model('twitter', 'twitter', 'word', 'at_lstm')
-    train_model('twitter', 'twitter', 'word', 'atae_lstm')
-    train_model('twitter', 'twitter', 'word', 'memnet')
-    train_model('twitter', 'twitter', 'word', 'ram')
-    train_model('twitter', 'twitter', 'word', 'ian')
-    train_model('twitter', 'twitter', 'word', 'cabasc')
+    # config.word_embed_trainable = True
+    # config.aspect_embed_trainable = True
+    # train_model('laptop/term', 'laptop', 'word', 'td_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'tc_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'ae_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'at_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'atae_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'memnet')
+    # train_model('laptop/term', 'laptop', 'word', 'ram')
+    # train_model('laptop/term', 'laptop', 'word', 'ian')
+    # train_model('laptop/term', 'laptop', 'word', 'cabasc')
+    #
+    # train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'ae_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'at_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'atae_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'memnet')
+    # train_model('restaurant/term', 'restaurant', 'word', 'ram')
+    # train_model('restaurant/term', 'restaurant', 'word', 'ian')
+    # train_model('restaurant/term', 'restaurant', 'word', 'cabasc')
+    #
+    # train_model('twitter', 'twitter', 'word', 'td_lstm')
+    # train_model('twitter', 'twitter', 'word', 'tc_lstm')
+    # train_model('twitter', 'twitter', 'word', 'ae_lstm')
+    # train_model('twitter', 'twitter', 'word', 'at_lstm')
+    # train_model('twitter', 'twitter', 'word', 'atae_lstm')
+    # train_model('twitter', 'twitter', 'word', 'memnet')
+    # train_model('twitter', 'twitter', 'word', 'ram')
+    # train_model('twitter', 'twitter', 'word', 'ian')
+    # train_model('twitter', 'twitter', 'word', 'cabasc')
+    #
+    # config.word_embed_trainable = False
+    # config.aspect_embed_trainable = True
+    # train_model('laptop/term', 'laptop', 'word', 'td_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'tc_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'ae_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'at_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'atae_lstm')
+    # train_model('laptop/term', 'laptop', 'word', 'memnet')
+    # train_model('laptop/term', 'laptop', 'word', 'ram')
+    # train_model('laptop/term', 'laptop', 'word', 'ian')
+    # train_model('laptop/term', 'laptop', 'word', 'cabasc')
+    #
+    # train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'ae_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'at_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'atae_lstm')
+    # train_model('restaurant/term', 'restaurant', 'word', 'memnet')
+    # train_model('restaurant/term', 'restaurant', 'word', 'ram')
+    # train_model('restaurant/term', 'restaurant', 'word', 'ian')
+    # train_model('restaurant/term', 'restaurant', 'word', 'cabasc')
+    #
+    # train_model('twitter', 'twitter', 'word', 'td_lstm')
+    # train_model('twitter', 'twitter', 'word', 'tc_lstm')
+    # train_model('twitter', 'twitter', 'word', 'ae_lstm')
+    # train_model('twitter', 'twitter', 'word', 'at_lstm')
+    # train_model('twitter', 'twitter', 'word', 'atae_lstm')
+    # train_model('twitter', 'twitter', 'word', 'memnet')
+    # train_model('twitter', 'twitter', 'word', 'ram')
+    # train_model('twitter', 'twitter', 'word', 'ian')
+    # train_model('twitter', 'twitter', 'word', 'cabasc')
 
     config.word_embed_trainable = False
     config.aspect_embed_trainable = False
@@ -157,7 +164,7 @@ if __name__ == '__main__':
     train_model('laptop/term', 'laptop', 'word', 'memnet')
     train_model('laptop/term', 'laptop', 'word', 'ram')
     train_model('laptop/term', 'laptop', 'word', 'ian')
-    train_model('laptop/term', 'laptop', 'word', 'cabasc')
+    # train_model('laptop/term', 'laptop', 'word', 'cabasc')
 
     train_model('restaurant/term', 'restaurant', 'word', 'td_lstm')
     train_model('restaurant/term', 'restaurant', 'word', 'tc_lstm')
@@ -167,7 +174,7 @@ if __name__ == '__main__':
     train_model('restaurant/term', 'restaurant', 'word', 'memnet')
     train_model('restaurant/term', 'restaurant', 'word', 'ram')
     train_model('restaurant/term', 'restaurant', 'word', 'ian')
-    train_model('restaurant/term', 'restaurant', 'word', 'cabasc')
+    # train_model('restaurant/term', 'restaurant', 'word', 'cabasc')
 
     train_model('twitter', 'twitter', 'word', 'td_lstm')
     train_model('twitter', 'twitter', 'word', 'tc_lstm')
@@ -177,5 +184,5 @@ if __name__ == '__main__':
     train_model('twitter', 'twitter', 'word', 'memnet')
     train_model('twitter', 'twitter', 'word', 'ram')
     train_model('twitter', 'twitter', 'word', 'ian')
-    train_model('twitter', 'twitter', 'word', 'cabasc')
+    # train_model('twitter', 'twitter', 'word', 'cabasc')
 
