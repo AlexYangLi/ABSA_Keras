@@ -180,3 +180,4 @@ are the performances of models with noth word embeddings  and aspect embeddings 
 2. `TD-LSTM` performs unexpectedly well.
 3. Models with fixed embeddings are generally better than those with fine-tuned embeddings, which is consistent with the paper of `RAM`.
 4. L2 regularization didn't help.
+5. I tried elmo embedding, but it didn't bring a performance gain.
