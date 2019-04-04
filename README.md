@@ -40,7 +40,7 @@ python3 train.py
 
 ### Data Analysis
 
-see [data_analysis.md](./data_analysis)
+see [data_analysis.md](./data_analysis.md)
 
 ### Performance
 Note: results in the `()` are the performances of models with word embeddings fixed but aspect embeddings fine tuned; results in the `[]`
