@@ -174,6 +174,10 @@ are the performances of models with noth word embeddings  and aspect embeddings 
 |ian      |               |  0.62007(0.6604)          |                   |  0.6550(0.6768)          |                |  0.65071(0.69550)        |
 |cabasc   |               |  0.64601(0.6356)[0.5886]  |                   |  0.6815(0.7201)[0.69357] |                |  0.66790(0.67948)[0.6610]|
 
+- Combining with ELMo Embedding
+
+![glove_vs_elmo]('asset/glove_vs_elmo.png')
+
 - Personal conclusion
 
 1. Surprisingly, I failed to achieved similar performance as stated in the parper of `Memnet`. Or maybe there are bugs in the code?
