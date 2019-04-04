@@ -176,7 +176,7 @@ are the performances of models with noth word embeddings  and aspect embeddings 
 
 - Combining with ELMo Embedding
 
-![glove_vs_elmo]('asset/glove_vs_elmo.png')
+![glove_vs_elmo](asset/glove_vs_elmo.png)
 
 - Personal conclusion
 
