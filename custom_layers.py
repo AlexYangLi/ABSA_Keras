@@ -106,7 +106,7 @@ class Attention(Layer):
         if self.return_self_attend:
             attend_output = K.sum(x * K.expand_dims(a), axis=1)
             if self.return_attend_weight:
-                return attend_output, a
+                return [attend_output, a]
             else:
                 return attend_output
         else:
@@ -234,7 +234,7 @@ class RecurrentAttention(Layer):
             e = (1 - z) * e + z * _e  # update e
 
         if self.return_attend_weight:
-            return e, K.concatenate(attend_weights, axis=0)
+            return [e, K.concatenate(attend_weights, axis=0)]
         else:
             return e
 
@@ -320,7 +320,7 @@ class InteractiveAttention(Layer):
         attend_concat = K.concatenate([attend_context, attend_asp_text], axis=-1)
 
         if self.return_attend_weight:
-            return attend_concat, a_c, a_t
+            return [attend_concat, a_c, a_t]
         else:
             return attend_concat
 
@@ -398,7 +398,7 @@ class ContentAttention(Layer):
         attend_context = K.sum(context * a_expand, axis=1) + sentence  # [batch_size, hidden]
 
         if self.return_attend_weight:
-            return attend_context, a
+            return [attend_context, a]
         else:
             return attend_context
 
