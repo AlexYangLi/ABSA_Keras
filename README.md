@@ -76,6 +76,16 @@ are the performances of models with noth word embeddings  and aspect embeddings 
 
 - Combining with ELMo Embedding
 
+There are 2 ways to use ELMo in this project. Before training model, change the configuration as belows:  
+1. In config.py, set self.use_elmo to True and self.elmo_hub_url 
+   to None or 'https://tfhub.dev/google/elmo/2', then tensorflow hub will download the elmo module and cached in the 
+   local temporay directory. But the module will be deleted after a machine reboot.
+2. So, I recommend you load the elmo module locally. First, download the elmo using url: https://tfhub.dev/google/elmo/2?tf-hub-format=compressed. 
+   Then change its name to tfhub_elmo_2 (whatever you want), untar the file, and put it in the raw_data directory. It will be like:
+   ![elmo_dir](asset/elmo_dir.png)
+   And don't forget to set self.elmo_hub_url in config.py to 'raw_data/tfhub_elmo_2'(the name you just renamed).  
+
+Here's the results of combining ELMo Embedding:  
 ![glove_vs_elmo](asset/glove_vs_elmo.png)
 
 - Personal conclusion
