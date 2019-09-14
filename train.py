@@ -20,7 +20,7 @@ from config import Config
 from data_loader import load_input_data, load_label
 from models import SentimentModel
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 
 def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
@@ -37,7 +37,7 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
     if config.use_aspect_input:
         config.exp_name += '_aspv_{}'.format(config.aspect_embed_type)
         config.exp_name = config.exp_name + '_update' if config.aspect_embed_trainable else config.exp_name + '_fix'
-    if config.use_emlo:
+    if config.use_elmo:
         config.exp_name += '_elmo_alone_{}_mode_{}_{}'.format(config.use_elmo_alone, config.elmo_output_mode,
                                                               'update' if config.elmo_trainable else 'fix')
 
@@ -64,6 +64,14 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
                                       config.use_offset_input, config.use_mask)
         valid_label = load_label(data_folder, 'valid')
 
+        '''
+        Note: Here I combine the training data and validation data together, use them as training input to the model, 
+              while I use test data to server as validation input. The reason behind is that i want to fully explore how 
+              well can the model perform on the test data (Keras's ModelCheckpoint callback can help usesave the model 
+              which perform best on validation data (here the test data)).
+              But generally, we won't do that, because test data will not (and should not) be accessible during training 
+              process.
+        '''
         train_combine_valid_input = []
         for i in range(len(train_input)):
             train_combine_valid_input.append(train_input[i] + valid_input[i])
@@ -85,7 +93,7 @@ def train_model(data_folder, data_name, level, model_name, is_aspect_term=True):
 
 if __name__ == '__main__':
     config = Config()
-    config.use_emlo = False
+    config.use_elmo = False
     config.use_elmo_alone = False
     config.elmo_trainable = False
 
