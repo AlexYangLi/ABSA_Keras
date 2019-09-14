@@ -19,7 +19,6 @@ import time
 from config import Config
 from data_loader import load_input_data, load_label
 from models import SentimentModel
-from utils import pickle_load
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
