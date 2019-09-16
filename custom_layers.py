@@ -358,15 +358,15 @@ class ContentAttention(Layer):
 
     def build(self, input_shape):
         assert isinstance(input_shape, list)
-        context_shape, _, _ = input_shape
+        context_shape, aspect_shape, sentence_shape = input_shape
 
         self.context_w = self.add_weight(shape=(context_shape[-1], context_shape[-1]), initializer=self.initializer,
                                          regularizer=self.regularizer, constraint=self.constraint,
                                          name='{}_context_w'.format(self.name))
-        self.aspect_w = self.add_weight(shape=(context_shape[-1], context_shape[-1]), initializer=self.initializer,
+        self.aspect_w = self.add_weight(shape=(aspect_shape[-1], context_shape[-1]), initializer=self.initializer,
                                         regularizer=self.regularizer, constraint=self.constraint,
                                         name='{}_aspect_w'.format(self.name))
-        self.sent_w = self.add_weight(shape=(context_shape[-1], context_shape[-1]), initializer=self.initializer,
+        self.sent_w = self.add_weight(shape=(sentence_shape[-1], context_shape[-1]), initializer=self.initializer,
                                       regularizer=self.regularizer, constraint=self.constraint,
                                       name='{}_sentence_w'.format(self.name))
 
