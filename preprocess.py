@@ -24,6 +24,23 @@ from config import Config
 from utils import pickle_dump
 
 
+def load_glove_format(filename):
+    word_vectors = {}
+    embeddings_dim = -1
+    with open(filename, 'r') as f:
+        for line in f:
+            line = line.strip().split()
+            word = line[0]
+            word_vector = np.array([float(v) for v in line[1:]])
+            word_vectors[word] = word_vector
+            if embeddings_dim == -1:
+                embeddings_dim = len(word_vector)
+
+    assert all(len(vw) == embeddings_dim for vw in word_vectors.values())
+
+    return word_vectors, embeddings_dim
+
+
 def list_flatten(l):
     result = list()
     for item in l:
@@ -56,18 +73,18 @@ def build_embedding(corpus, vocab, embedding_dim=300):
     return emb
 
 
-def build_glove_embedding(vocab, weights, d):
-    emb = np.zeros(shape=(len(vocab) + 2, weights.shape[1]), dtype='float32')
+def build_glove_embedding(vocab, word_vectors, embed_dim):
+    emb_matrix = np.zeros(shape=(len(vocab) + 2, embed_dim), dtype='float32')
 
     count = 0
-    for w, i in vocab.items():
-        if w not in d:
+    for word, i in vocab.items():
+        if word not in word_vectors:
             count += 1
-            emb[i, :] = np.random.uniform(-0.1, 0.1, weights.shape[1])
+            emb_matrix[i, :] = np.random.uniform(-0.1, 0.1, embed_dim)
         else:
-            emb[i, :] = weights[d[w], :]
+            emb_matrix[i, :] = word_vectors[word]
     print('glove embedding out of vocabulary：', count)
-    return emb
+    return emb_matrix
 
 
 def build_aspect_embedding(aspect_vocab, split_func, word_vocab, word_embed):
@@ -271,7 +288,7 @@ def pre_process(file_folder, word_cut_func, is_en):
     print('sample of aspect_text_char_w2v:', aspect_text_char_w2v[:2, :5])
 
     if is_en:
-        word_glove = build_glove_embedding(word_vocab, glove_weights, glove_d)
+        word_glove = build_glove_embedding(word_vocab, glove_vectors, glove_embed_dim)
         aspect_word_glove = build_aspect_embedding(aspect_vocab, word_cut_func, word_vocab, word_glove)
         aspect_text_word_glove = build_aspect_text_embedding(aspect_text_word_vocab, word_vocab, word_glove)
         np.save(os.path.join(file_folder, 'word_glove.npy'), word_glove)
@@ -428,9 +445,7 @@ def pre_process(file_folder, word_cut_func, is_en):
 
 if __name__ == '__main__':
     config = Config()
-    glove_model = KeyedVectors.load_word2vec_format('./raw_data/glove.42B.300d.txt', binary=False)
-    glove_weights = glove_model.wv.syn0
-    glove_d = dict([(k, v.index) for k, v in glove_model.wv.vocab.items()])
+    glove_vectors, glove_embed_dim = load_glove_format('./raw_data/glove.42B.300d.txt')
 
     pre_process('./data/laptop/term', lambda x: nltk.word_tokenize(x), True)
     pre_process('./data/restaurant/term', lambda x: nltk.word_tokenize(x), True)
