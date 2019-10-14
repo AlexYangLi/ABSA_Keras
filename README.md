@@ -22,9 +22,19 @@ Wang et al. "Attention-based LSTM for Aspect-level Sentiment Classification"
 - [TD-LSTM(TC-LSTM), COLING 2016](https://arxiv.org/pdf/1512.01100)  
 Tang et al. "Effective LSTMs for Target-Dependent Sentiment Classification"
 
-### Preprocessing
+### Pre-processing
+
+1. download glove embedding `glove.42B.300d.zip`, unzip and put it in `raw_data`  
 ```
-sh preprocess.sh
+wget https://nlp.stanford.edu/data/wordvecs/glove.42B.300d.zip
+unzip glove.42B.300d.zip
+mv glove.42B.300d.txt ./raw_data
+```
+
+2. pre-processing
+```
+python3 process_raw.py
+python3 preprocess.py
 ```
 
 ### Training
