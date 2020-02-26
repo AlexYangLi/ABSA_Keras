@@ -54,7 +54,7 @@ see [data_analysis.md](./data_analysis.md)
 
 ### Performance
 Note: results in the `()` are the performances of models with word embeddings fixed but aspect embeddings fine tuned; results in the `[]`
-are the performances of models with noth word embeddings  and aspect embeddings fixed
+are the performances of models with both word embeddings  and aspect embeddings fixed
 
 - Accuracy
 
